@@ -10,25 +10,64 @@ services:
       - /usr/app/node_modules
     ports:
       - '3000:3000'
-    depends_on:
-      - cassandra
     restart: on-failure
     environment: 
       CASSANDRA_SERVER: cassandra
-    links:
-      - cassandra
-  cassandra:
+  cass_node_1:
     image: cassandra:latest
-    container_name: cassandra
+    container_name: cass_node_1
+    networks:
+      dc1ring: 
+        ipv4_address: 172.30.0.2
+    expose: 
+      - 7000
+      - 7001
+      - 7199
+      - 9042
+      - 9142
     ports:
       - '9042:9042'
-      - '9160:9160'
-    restart: always
-  cassandra-load-keyspace:
-    container_name: cassandra-load-keyspace
+    ulimits:
+      memlock: -1
+      nproc: 32768
+      nofile: 100000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 2000M
+        reservations:
+          cpus: '0.25'
+          memory: 2000M
+  cass_node_2:
     image: cassandra:latest
-    depends_on:
-      - cassandra
-    volumes:
-      - .:/usr/app/
-    command: /bin/bash -c "sleep 30 && echo loading cassandra keyspace && cqlsh cassandra -f usr/app/schema.cql"
+    container_name: cass_node_2
+    networks:
+      dc1ring: 
+        ipv4_address: 172.30.0.3
+    expose: 
+      - 7000
+      - 7001
+      - 7199
+      - 9042
+      - 9142
+    ports:
+      - '9043:9042'
+    ulimits:
+      memlock: -1
+      nproc: 32768
+      nofile: 100000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 2000M
+        reservations:
+          cpus: '0.25'
+          memory: 2000M
+networks:
+  dc1ring:
+      ipam:
+          driver: default
+          config:
+              - subnet: 172.30.0.0/16
